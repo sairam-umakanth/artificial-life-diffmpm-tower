@@ -3,10 +3,10 @@ import os
 import glob
 
 # Define the output filename
-output_video = "generation5.mp4"
+output_video = "winners.mp4"
 
 # Get all matching video files
-video_files = sorted(glob.glob("evol*_structure_gen*_iter*.mp4"))
+video_files = sorted(glob.glob("evol10_structure_gen*_iter*.mp4"))
 
 if not video_files:
     print("No matching videos found!")

@@ -411,13 +411,13 @@ def fish(scene):
     scene.set_n_actuators(4)
 
 
-def robot(scene, legs, layers):
+def robot(scene, legs, layers, leg_width=0.05, leg_height=0.1):
     scene.set_offset(0.1, 0.03)
     
-    body_width = 0.3
-    body_height = 0.1
-    leg_width = 0.05
-    leg_height = 0.1
+    body_width = 0.3 #constant
+    body_height = 0.1 #constant (height of one layer of tower)
+    leg_width = leg_width
+    leg_height = leg_height
     spacing = (body_width - (legs * leg_width)) / (legs - 1) if legs > 1 else 0
 
     # Create the first set of legs (ground level)
@@ -463,135 +463,145 @@ def visualize(s, folder):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--iters', type=int, default=20, help="Inner gradient descent iterations")
-    parser.add_argument('--gen_iters', type=int, default=10, help="Number of structures in generation")
-    options = parser.parse_args()
+    try:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--iters', type=int, default=20, help="Inner gradient descent iterations")
+        parser.add_argument('--gen_iters', type=int, default=10, help="Number of structures in generation")
+        options = parser.parse_args()
 
-    total_structures = options.gen_iters
-    best_loss = float('inf')
-    best_structure_params = None
-    all_loss_histories = []
-    best_params_per_gen = []
-
-    checkpoint = load_checkpoint()
-
-    if checkpoint:
-        gen_start = checkpoint["gen"] + 1  # Resume from the next generation
-        best_loss = checkpoint["best_loss"]
-        best_structure_params = checkpoint["best_structure_params"]
-        all_loss_histories = checkpoint["all_loss_histories"]
-        best_params_per_gen = checkpoint["best_params_per_gen"]
-    else:
-        gen_start = 0  # Start from scratch
+        total_structures = options.gen_iters
         best_loss = float('inf')
         best_structure_params = None
         all_loss_histories = []
         best_params_per_gen = []
 
-    for gen in range(gen_start, total_structures):
-        print(f"\n=== Generation Structure {gen} ===")
-        # Create and configure a new scene.
-        scene = Scene()
-        legs =  5 #np.random.randint(2, 7)
-        layers = 1 #np.random.randint(1, 4)
-        robot(scene, legs, layers)
-        # Add random modifications.
-        discrepencies = np.random.randint(1, 5)
-        for i in range(discrepencies):
-            x1 = 0.1 + np.random.rand() * 0.3
-            x2 = 0.1 + np.random.rand() * 0.3
-            y1 = 0.03 + np.random.rand() * 0.2 * layers
-            y2 = 0.03 + np.random.rand() * 0.2 * layers
-            w1 = np.random.rand() * 0.1
-            w2 = np.random.rand() * 0.2
-            scene.modify_material_properties(x1, y1, w1, w1, "circle", -1)
-            scene.modify_material_properties(x2, y2, w2, w2, "circle", 3)
-        scene.finalize()
-        reinitialize_taichi()  # Reinitialize Taichi fields.
+        checkpoint = load_checkpoint()
 
-        # Initialize actuator parameters.
-        for i in range(n_actuators):
-            for j in range(n_sin_waves):
-                weights[i, j] = np.random.randn() * 0.01
-            bias[i] = np.random.randn() * 0.01
+        if checkpoint:
+            gen_start = checkpoint["gen"] + 1  # Resume from the next generation
+            best_loss = checkpoint["best_loss"]
+            best_structure_params = checkpoint["best_structure_params"]
+            all_loss_histories = checkpoint["all_loss_histories"]
+            best_params_per_gen = checkpoint["best_params_per_gen"]
+        else:
+            gen_start = 0  # Start from scratch
+            best_loss = float('inf')
+            best_structure_params = None
+            all_loss_histories = []
+            best_params_per_gen = []
 
-        # Initialize particle state.
-        for i in range(scene.n_particles):
-            x[0, i] = scene.x[i]
-            F[0, i] = [[1, 0], [0, 1]]
-            actuator_id[i] = scene.actuator_id[i]
-            particle_type[i] = scene.particle_type[i]
+        for gen in range(gen_start, total_structures):
+            print(f"\n=== Generation 10 Structure {gen} ===")
+            # Create and configure a new scene.
+            scene = Scene()
+            legs =  2 #np.random.randint(2, 6)
+            layers = 2 #np.random.randint(1, 4)
+            leg_width = 0.13993498775300625 #0.01 + np.random.rand() * (0.3/(legs) - 0.01)
+            leg_height = 0.05629517073980425 #0.01 + (np.random.rand() * (0.1 - layers * 0.01))
+            robot(scene, legs, layers, leg_width, leg_height)
+            # Add random modifications.
+            discrepencies = 4
+            discrepancy_params = []
+            for i in range(discrepencies):
+                x1 = 0.1 + np.random.rand() * 0.3
+                x2 = 0.1 + np.random.rand() * 0.3
+                y1 = 0.03 + np.random.rand() * 0.2 * layers
+                y2 = 0.03 + np.random.rand() * 0.2 * layers
+                w1 = np.random.rand() * 0.1
+                w2 = np.random.rand() * 0.2
+                discrepancy_params.append((x1, y1, w1, x2, y2, w2))
+                scene.modify_material_properties(x1, y1, w1, w1, "circle", -1)
+                scene.modify_material_properties(x2, y2, w2, w2, "circle", 3)
+            scene.finalize()
+            reinitialize_taichi()  # Reinitialize Taichi fields.
 
-        # Inner gradient descent loop.
-        structure_loss_history = []
-        for iter in range(options.iters):
-            with ti.ad.Tape(loss):
-                forward()
-            l = loss[None]
-            structure_loss_history.append(l)
-            print(f"Structure {gen}, iter {iter}: loss = {l}")
-
-            learning_rate = 0.3
+            # Initialize actuator parameters.
             for i in range(n_actuators):
                 for j in range(n_sin_waves):
-                    weights[i, j] -= learning_rate * weights.grad[i, j]
-                bias[i] -= learning_rate * bias.grad[i]
+                    weights[i, j] = np.random.randn() * 0.01
+                bias[i] = np.random.randn() * 0.01
 
-            # Visualize at first and last iteration.
-            if iter == 0 or iter == options.iters - 1:
-                forward(1500)
-                folder_name = f'diffmpm/iter{iter:03d}/'
-                for s in range(15, 1500, 16):
-                    visualize(s, folder_name)
+            # Initialize particle state.
+            for i in range(scene.n_particles):
+                x[0, i] = scene.x[i]
+                F[0, i] = [[1, 0], [0, 1]]
+                actuator_id[i] = scene.actuator_id[i]
+                particle_type[i] = scene.particle_type[i]
 
-        all_loss_histories.append(structure_loss_history)
-        final_loss = structure_loss_history[-1]
+            # Inner gradient descent loop.
+            structure_loss_history = []
+            for iter in range(options.iters):
+                with ti.ad.Tape(loss):
+                    forward()
+                l = loss[None]
+                structure_loss_history.append(l)
+                print(f"Structure {gen}, iter {iter}: loss = {l}")
 
-        current_best = {
-            'generation_iteration': gen,
-            'legs': legs,
-            'discrepancies': discrepencies,
-            'layers': layers,
-            'weights': weights.to_numpy().tolist(),
-            'bias': bias.to_numpy().tolist(),
-            'best_loss': final_loss
-        }
-        best_params_per_gen.append(current_best)
-        if final_loss < best_loss:
-            best_loss = final_loss
-            best_structure_params = current_best
+                learning_rate = 0.3
+                for i in range(n_actuators):
+                    for j in range(n_sin_waves):
+                        weights[i, j] -= learning_rate * weights.grad[i, j]
+                    bias[i] -= learning_rate * bias.grad[i]
 
-        # Record video for this structure(using one of the visualization folders)
-        # Here, we're assuming you saved images in folder 'diffmpm/iter000/' for the first iteration.
-        create_video_from_images('diffmpm/iter000/', f'evol6_structure_gen{gen:03d}_iter0.mp4', fps=20)
-        create_video_from_images('diffmpm/iter019/', f'evol6_structure_gen{gen:03d}_iter20.mp4', fps=20)
+                # Visualize at first and last iteration.
+                if iter == 0 or iter == options.iters - 1:
+                    forward(1500)
+                    folder_name = f'diffmpm/iter{iter:03d}/'
+                    for s in range(15, 1500, 16):
+                        visualize(s, folder_name)
 
-        ti.reset()
+            all_loss_histories.append(structure_loss_history)
+            final_loss = structure_loss_history[-1]
 
-        save_checkpoint(gen, best_loss, best_structure_params, all_loss_histories, best_params_per_gen)
+            current_best = {
+                'generation_iteration': gen,
+                'layers': layers,
+                'legs': legs,
+                'leg_width': leg_width,
+                'leg_height': leg_height,
+                'discrepancies': discrepencies,
+                'discrepancy_params': discrepancy_params,
+                'weights': weights.to_numpy().tolist(),
+                'bias': bias.to_numpy().tolist(),
+                'best_loss': final_loss
+            }
+            best_params_per_gen.append(current_best)
+            if final_loss < best_loss:
+                best_loss = final_loss
+                best_structure_params = current_best
 
-    # Save best parameters per generation.
-    with open('best_params.json', 'w') as f:
-        json.dump(best_params_per_gen, f, indent=4)
+            # Record video for this structure(using one of the visualization folders)
+            # Here, we're assuming you saved images in folder 'diffmpm/iter000/' for the first iteration.
+            create_video_from_images('diffmpm/iter000/', f'evol10_structure_gen{gen:03d}_iter0.mp4', fps=20)
+            create_video_from_images('diffmpm/iter019/', f'evol10_structure_gen{gen:03d}_iter20.mp4', fps=20)
+
+            ti.reset()
+
+            save_checkpoint(gen, best_loss, best_structure_params, all_loss_histories, best_params_per_gen)
+
+        # Save best parameters per generation.
+        with open('best_params.json', 'w') as f:
+            json.dump(best_params_per_gen, f, indent=4)
+
+        print("\nBest Performing Structure:")
+        print(best_structure_params)
+
+
+        # Plot loss histories.
+        for idx, history in enumerate(all_loss_histories):
+            plt.plot(history, label=f'Structure {idx}')
+        plt.title("Loss History for Each Generation 10 Structure")
+        plt.xlabel("Gradient Descent Iterations")
+        plt.ylabel("Loss")
+        plt.legend()
+        plt.show()
+
+        print("\nBest Performing Structure:")
+        print(best_structure_params)
+        reset_checkpoint()
     
-    print("\nBest Performing Structure:")
-    print(best_structure_params)
-
-
-    # Plot loss histories.
-    for idx, history in enumerate(all_loss_histories):
-        plt.plot(history, label=f'Structure {idx}')
-    plt.title("Loss History for Each Generation 6 Structure")
-    plt.xlabel("Gradient Descent Iterations")
-    plt.ylabel("Loss")
-    plt.legend()
-    plt.show()
-
-    print("\nBest Performing Structure:")
-    print(best_structure_params)
-
-    reset_checkpoint()
+    except KeyboardInterrupt:
+        reset_checkpoint()
 
 if __name__ == '__main__':
     main()
