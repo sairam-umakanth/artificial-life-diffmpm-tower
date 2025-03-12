@@ -7,7 +7,7 @@ Number of parents per generation: 1
 
 ## Generation 1: (Parent: Original diffmpm) Vary legs and leg width, layers = 1
 
-![alt text](image-1.png)
+![alt text](images/image-1.png)
 
 ```json
     {
@@ -84,7 +84,7 @@ Number of parents per generation: 1
 
 ## Generation 2: Vary layers and leg height, legs and leg width from predecessor
 
-![alt text](image-2.png)
+![alt text](images/image-2.png)
 
 ```json
     {
@@ -161,7 +161,7 @@ Number of parents per generation: 1
 
 ## Generation 3: Vary legs and leg width, layers and leg height from predecessor
 
-![alt text](image-3.png)
+![alt text](images/image-3.png)
 
 ```json
 {
@@ -210,7 +210,7 @@ Number of parents per generation: 1
 
 ## Generation 4: Vary layers and leg height, legs and leg width from predecessor
 
-![alt text](image-4.png)
+![alt text](images/image-4.png)
 
 ```json
 {
@@ -261,7 +261,7 @@ Number of parents per generation: 1
 
 No improvement. Max loss still Gen 4
 
-![alt text](image-5.png)
+![alt text](images/image-5.png)
 
 ```json
     {
@@ -340,7 +340,7 @@ No improvement. Max loss still Gen 4
 
 No improvement. Max loss still Gen 4
 
-![alt text](<Screenshot from 2025-03-11 16-44-08.png>)
+![alt text](images/<Screenshot from 2025-03-11 16-44-08.png>)
 
 ```json
     {
@@ -389,7 +389,7 @@ No improvement. Max loss still Gen 4
 
 ## Generation 7: Vary legs and layers, keep legs * width and layers * height constant
 
-![alt text](image-6.png)
+![alt text](images/image-6.png)
 
 ```json
     {
@@ -438,7 +438,7 @@ No improvement. Max loss still Gen 4
 
 ## Generation 8: Introduce discrepancies: Varying number of discrepancies
 
-![alt text](image-7.png)
+![alt text](images/image-7.png)
 
 ```json
     {
@@ -498,7 +498,7 @@ No improvement. Max loss still Gen 4
 
 No improvement from last generation
 
-![alt text](image-8.png)
+![alt text](images/image-8.png)
 
 ```json
     {
@@ -564,7 +564,7 @@ No improvement from last generation
 
 ## Generation 10: Vary discrepancy size for one number of discrepancy value
 
-![alt text](image-9.png)
+![alt text](images/image-9.png)
 
 ```json
     {
