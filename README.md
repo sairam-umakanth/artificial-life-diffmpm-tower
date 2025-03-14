@@ -57,7 +57,7 @@ It was found that the structure preferred to evolve in the middle ground of hori
 
 ## YouTube Video
 
-![diffmpmtower_video](https://youtu.be/ei0TkFdqHJA)
+[![diffmpmtower_video](https://img.youtube.com/vi/ei0TkFdqHJA/0.jpg)](https://www.youtube.com/watch?v=ei0TkFdqHJA)
 
 
 
